@@ -55,6 +55,18 @@
 @media(max-width:460px){.currency-summary-card{padding:12px}.currency-metrics{gap:6px}.currency-metric{padding:8px 6px}.currency-metric small{font-size:10px}.currency-metric strong{font-size:clamp(16px,4.7vw,21px)}}
 
 html{-webkit-text-size-adjust:100%;touch-action:pan-x pan-y}input,select,textarea,button{font-size:16px!important}input[type="date"]{font-size:16px!important}body{overscroll-behavior-y:contain}@media(max-width:760px){input,select,textarea{font-size:16px!important}}
+
+/* Home dashboard refresh — entry, report and outflow screens remain unchanged */
+.home-dashboard{display:grid;gap:18px;padding:2px 0 22px}
+.home-welcome{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:25px 24px;border-radius:22px;background:radial-gradient(circle at 90% 0%,#2d8ba0 0,transparent 36%),linear-gradient(120deg,#102a43,#176b87);color:#fff;box-shadow:0 12px 30px #142b4324}
+.home-welcome h2{font-size:clamp(25px,5vw,34px);margin:7px 0 5px;letter-spacing:-.5px}.home-welcome p{margin:0;color:#d7e8f0;font-size:14px}
+.home-eyebrow{font-size:10px;letter-spacing:1.6px;font-weight:800;color:#78b8c8}.home-refresh{background:#fff;color:#17364b;border-radius:12px;padding:12px 15px;white-space:nowrap}
+.home-balance-panel,.home-report-panel{background:#fff;border:1px solid #dce6ed;border-radius:22px;padding:20px;box-shadow:0 8px 26px #142b430b}
+.home-panel-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.home-panel-heading h3{font-size:clamp(19px,4vw,24px);margin:5px 0;color:#172b3e}.home-panel-heading p{margin:3px 0 0;color:#718096;font-size:13px}.home-panel-tag{padding:8px 11px;border-radius:20px;background:#eaf4f7;color:#176b87;font-size:12px;font-weight:700;white-space:nowrap}.home-report-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#e8f4f7;color:#176b87;font-size:23px;font-weight:800}
+.home-dashboard #homeBalanceCards .outflow-summary{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.home-dashboard #homeBalanceCards .outflow-card{border:1px solid #dce7ee;border-left:5px solid #176b87;border-radius:16px;padding:17px;background:linear-gradient(145deg,#fff,#f1f7fa);box-shadow:0 5px 16px #142b4310}.home-dashboard #homeBalanceCards .outflow-card h4{font-size:13px;margin-bottom:9px;color:#5b7084}.home-dashboard #homeBalanceCards .outflow-card strong{font-size:clamp(25px,5vw,31px);color:#172b3e}
+.home-report-panel table{min-width:0}.home-report-panel th{background:#eef4f8;color:#344b60;font-size:12px;text-transform:uppercase;letter-spacing:.35px}.home-report-panel td{font-size:14px;padding:13px 11px}.home-report-panel tbody tr:nth-child(even){background:#f8fafc}.home-report-panel td:last-child{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;color:#17364b}.home-report-panel th:last-child{text-align:right}
+@media(max-width:520px){.home-welcome{padding:20px 17px;border-radius:18px}.home-refresh{padding:10px 11px;font-size:13px}.home-balance-panel,.home-report-panel{padding:15px;border-radius:18px}.home-dashboard #homeBalanceCards .outflow-summary{grid-template-columns:1fr}.home-report-panel td,.home-report-panel th{padding:11px 8px}}
+
 </style><style>
 /* iOS Safari focuses inputs below 16px by zooming the whole page. Keep search controls at 16px. */
 #memberSearch,#fMember,.member-picker input{font-size:16px!important;min-height:50px;touch-action:manipulation;-webkit-text-size-adjust:100%}
@@ -70,7 +82,11 @@ html{-webkit-text-size-adjust:100%;touch-action:pan-x pan-y}input,select,textare
 <div id="loginView" class="wrap login"><div class="brand"><h1>HIM SOFTWARE</h1><p>Yearly Due • Payment Entry • Reports</p></div><div class="card"><h2>Login</h2><div class="field"><label>Email</label><input id="loginEmail" type="email" autocomplete="username" placeholder="Email address"></div><div class="field"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password"></div><button id="loginBtn" style="width:100%">Login</button><div id="loginMsg" class="msg hidden"></div></div></div>
 <div id="appView" class="wrap hidden"><header class="brand"><div class="sectionhead"><div><h1>HIM SOFTWARE</h1><p>Yearly Due & Payment Management</p></div><button id="logoutBtn" class="secondary">Logout</button></div></header><div id="globalMsg" class="msg hidden"></div>
 <div class="tabs"><button class="active" data-tab="home">Home</button><button data-tab="entry">Entry</button><button data-tab="report">Report</button><button data-tab="outflows">Outflows</button></div>
-<section id="tab-home"><div class="card"><div class="sectionhead"><h2>Home</h2><button id="refreshHome" class="secondary">Refresh</button></div><h3>Available Balance — Currency Wise</h3><div id="homeBalanceCards" class="currency-cards"></div></div><div class="card"><h3>To HIM — Monthly Total</h3><div id="toHfmMonthly" class="tablewrap"></div></div></section>
+<section id="tab-home" class="home-dashboard">
+ <div class="home-welcome"><div><span class="home-eyebrow">HIM FINANCE OVERVIEW</span><h2>Home Dashboard</h2><p>Balances & To HIM category report</p></div><button id="refreshHome" class="home-refresh">↻ Refresh</button></div>
+ <div class="home-balance-panel"><div class="home-panel-heading"><div><span class="home-eyebrow">LIVE POSITION</span><h3>Available Balance</h3></div><span class="home-panel-tag">Currency Wise</span></div><div id="homeBalanceCards" class="currency-cards"></div></div>
+ <div class="home-report-panel"><div class="home-panel-heading"><div><span class="home-eyebrow">OUTFLOW SUMMARY</span><h3>To HIM — Transaction Report</h3><p>Transaction Amount & Total (INR)</p></div><span class="home-report-icon">↗</span></div><div id="toHfmMonthly" class="tablewrap"></div></div>
+</section>
 <section id="tab-entry"><div class="card entry-card"><div class="sectionhead"><h2>Payment Entry</h2><span class="pill">Date automatically selected</span></div><div class="entry-form-v2">
 <div class="entry-topline"><div class="field date-compact"><label>1. Date</label><input id="entryDate" type="date"></div><div class="field year-compact"><label>2. Year</label><select id="entryYear"></select></div></div>
 <div class="field name-wide"><label>3. Name / Code — Ayalvasikal Members</label><div class="member-picker"><input id="memberSearch" autocomplete="off" placeholder="Search and select Name / Code" aria-label="Select name or code"><div id="memberSuggestions" class="member-suggestions hidden"></div></div><div class="muted" id="memberSelected"></div></div>
@@ -165,17 +181,19 @@ function outflowTotals(){
 function renderOutflowCards(elId,map){let entries=[...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));$(elId).innerHTML=entries.length?`<div class="outflow-summary">${entries.map(([name,value])=>`<div class="outflow-card"><h4>${esc(name)}</h4><strong class="${value<0?'negative':''}">${fmt(value)}</strong></div>`).join('')}</div>`:'<div class="muted">No transactions</div>'}
 function refreshOutflowUI(){if(!$('outCurrency'))return;let currencies=[...new Set([...categoryValues('currency'),...payments.map(p=>p.currency).filter(Boolean),...outflows.map(o=>o.from_currency).filter(Boolean),...outflows.map(o=>o.inr_currency).filter(Boolean)])];setSelect('outCurrency',currencies.filter(v=>!isINR(v)),'Select currency');let {received,balance}=outflowTotals();renderOutflowCards('outflowReceivedCards',received);renderOutflowCards('outflowBalanceCards',balance);$('outflowTable').innerHTML=table(['Date','Category','From Currency','Transfer / INR Amount','INR Added','Remarks'],outflows.map(o=>[o.entry_date,o.category,o.from_currency,o.transaction_kind==='inr_outflow'?fmt(o.inr_outflow_amount||o.from_amount):fmt(o.from_amount),fmt(o.inr_amount),o.remarks]));refreshOutflowCategory();renderHomeUI();}
 function renderHomeUI(){
- const {balance}=outflowTotals();renderOutflowCards('homeBalanceCards',balance);
- const monthly=new Map();
- outflows.forEach(o=>{
-  const category=String(o.category||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-  if(!category.includes('tohfm'))return;
-  const date=String(o.entry_date||'');const month=date.slice(0,7)||'Unknown';
-  const amount=String(o.transaction_kind||'').toLowerCase()==='inr_outflow'?Number(o.inr_outflow_amount||o.from_amount||0):Number(o.from_amount||0);
-  monthly.set(month,(monthly.get(month)||0)+amount);
- });
- const rows=[...monthly.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([month,total])=>[month,fmt(total)]);
- $('toHfmMonthly').innerHTML=table(['Month','Total Amount (INR)'],rows);
+ const {balance}=outflowTotals();
+ renderOutflowCards('homeBalanceCards',balance);
+ // Show only To HIM transactions: individual INR transaction amounts and one grand total.
+ const rows=outflows.filter(o=>{
+  if(String(o.transaction_kind||'').toLowerCase()!=='inr_outflow')return false;
+  const key=String(o.category||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  return key.includes('tohim')||key.includes('tohfm');
+ }).sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||'')));
+ const amounts=rows.map(o=>Number(o.inr_outflow_amount||o.from_amount||0));
+ const total=amounts.reduce((sum,n)=>sum+n,0);
+ $('toHfmMonthly').innerHTML=rows.length
+  ? `<div class="tablewrap"><table><thead><tr><th>Transaction Amount (INR)</th></tr></thead><tbody>${amounts.map(n=>`<tr><td>${fmt(n)}</td></tr>`).join('')}</tbody><tfoot><tr><th>Total</th><th>${fmt(total)}</th></tr></tfoot></table></div>`
+  : '<div class="muted">No To HIM transactions</div>';
 }
 $('refreshHome').onclick=renderHomeUI;
 function outflowMessage(t,err=false){$('outflowMsg').textContent=t;$('outflowMsg').className='msg '+(err?'error':'success');$('outflowMsg').classList.remove('hidden')}
