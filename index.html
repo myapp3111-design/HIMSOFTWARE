@@ -130,29 +130,41 @@ async function addType(){let name=$('newTypeName').value.trim();if(!name)return 
 function statusBox(id,t,err=false){$(id).textContent=t;$(id).className='msg '+(err?'error':'success')} 
 async function addCategory(){let type=$('categoryType').value,name=$('categoryName').value.trim();if(!name){$('categoryStatus').textContent='Category name നൽകുക.';$('categoryStatus').className='msg error';return}let {error}=await db.from('him_transaction_categories').insert({category_type:type,category_name:name});if(error){$('categoryStatus').textContent=error.code==='23505'?'ഈ category നേരത്തെ ഉണ്ട്.':error.message;$('categoryStatus').className='msg error';return} $('categoryName').value='';$('categoryStatus').textContent='Category save ചെയ്തു.';$('categoryStatus').className='msg success';let {data}=await db.from('him_transaction_categories').select('*').order('category_name');categories=data||[];refreshCategorySelects();refreshCategoryTypeOptions();refreshOutflowCategory();renderCategoryLists();}
 $('openSettings').onclick=()=>{$('settingsPage').classList.remove('hidden');renderCategoryLists();renderTypeList()};$('closeSettings').onclick=()=>$('settingsPage').classList.add('hidden');$('addCategory').onclick=addCategory;$('addType').onclick=addType;
-function isINR(name){let s=String(name||'').toLowerCase();return s.includes('indian')||s==='inr'||s.includes('rupee')||s.includes('rupees')}
+function isINR(name){let s=String(name||'').toLowerCase().replace(/[^a-z]/g,'');return s==='inr'||s.includes('indianrupee')||s.includes('rupee')}
+function canonicalCurrency(name){
+ const raw=String(name||'').trim();
+ if(!raw)return 'Not set';
+ const all=[...categoryValues('currency'),...payments.map(p=>p.currency).filter(Boolean),...outflows.flatMap(o=>[o.from_currency,o.inr_currency]).filter(Boolean)];
+ if(isINR(raw)){const found=all.find(isINR);return found||'Indian Rupees'}
+ const match=all.find(v=>String(v).trim().toLowerCase()===raw.toLowerCase());
+ return match||raw;
+}
 function outflowTotals(){
- let received=new Map();payments.forEach(p=>{let k=p.currency||'Not set';received.set(k,(received.get(k)||0)+Number(p.amount||0))});
+ // Opening balance = all saved payment receipts. Conversions move value between currencies;
+ // they subtract from source currency and add the manually entered INR amount.
+ let received=new Map();
+ payments.forEach(p=>{const k=canonicalCurrency(p.currency||'Not set');received.set(k,(received.get(k)||0)+Number(p.amount||0));});
  let balance=new Map(received);
  outflows.forEach(o=>{
-  const kind=o.transaction_kind||'conversion';
+  const kind=String(o.transaction_kind||'conversion').toLowerCase();
   if(kind==='inr_outflow'){
-   const inrName=o.inr_currency||categoryValues('currency').find(isINR)||'Indian Rupees';
+   const inrName=canonicalCurrency(o.inr_currency||categoryValues('currency').find(isINR)||'Indian Rupees');
    balance.set(inrName,(balance.get(inrName)||0)-Number(o.inr_outflow_amount||o.from_amount||0));
   }else{
-   const from=o.from_currency||'Not set';
+   const from=canonicalCurrency(o.from_currency||'Not set');
+   const inrName=canonicalCurrency(o.inr_currency||categoryValues('currency').find(isINR)||'Indian Rupees');
    balance.set(from,(balance.get(from)||0)-Number(o.from_amount||0));
-   const inrName=o.inr_currency||categoryValues('currency').find(isINR)||'Indian Rupees';
    balance.set(inrName,(balance.get(inrName)||0)+Number(o.inr_amount||0));
   }
- });return {received,balance}
+ });
+ return {received,balance};
 }
 function renderOutflowCards(elId,map){let entries=[...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));$(elId).innerHTML=entries.length?`<div class="outflow-summary">${entries.map(([name,value])=>`<div class="outflow-card"><h4>${esc(name)}</h4><strong class="${value<0?'negative':''}">${fmt(value)}</strong></div>`).join('')}</div>`:'<div class="muted">No transactions</div>'}
 function refreshOutflowUI(){if(!$('outCurrency'))return;let currencies=[...new Set([...categoryValues('currency'),...payments.map(p=>p.currency).filter(Boolean),...outflows.map(o=>o.from_currency).filter(Boolean),...outflows.map(o=>o.inr_currency).filter(Boolean)])];setSelect('outCurrency',currencies.filter(v=>!isINR(v)),'Select currency');let {received,balance}=outflowTotals();renderOutflowCards('outflowReceivedCards',received);renderOutflowCards('outflowBalanceCards',balance);$('outflowTable').innerHTML=table(['Date','Type','Transaction Code','From Currency','Transfer / INR Amount','INR Added','Remarks'],outflows.map(o=>[o.entry_date,o.transaction_kind==='inr_outflow'?'INR Outflow':'Currency → INR',o.category,o.from_currency,o.transaction_kind==='inr_outflow'?fmt(o.inr_outflow_amount||o.from_amount):fmt(o.from_amount),fmt(o.inr_amount),o.remarks]));refreshOutflowCategory();}
 function outflowMessage(t,err=false){$('outflowMsg').textContent=t;$('outflowMsg').className='msg '+(err?'error':'success');$('outflowMsg').classList.remove('hidden')}
 function inrOutflowMessage(t,err=false){$('inrOutflowMsg').textContent=t;$('inrOutflowMsg').className='msg '+(err?'error':'success');$('inrOutflowMsg').classList.remove('hidden')}
-async function saveOutflow(){try{let date=$('outDate').value||new Date().toLocaleDateString('en-CA'),category=$('convertCategory').value,currency=$('outCurrency').value,amount=Number($('outAmount').value),inr=Number($('outInrAmount').value),remarks=$('outRemarks').value.trim();if(!category)throw Error('Settings-ൽ Send to INR transaction type-ന് കീഴിൽ category സൃഷ്ടിക്കുക.');if(!currency)throw Error('Transfer currency തിരഞ്ഞെടുക്കുക.');if(!(amount>0))throw Error('Transfer Amount ശരിയായി നൽകുക.');if(!(inr>0))throw Error('Manual INR Amount നൽകുക.');if(isINR(currency))throw Error('INR currency converter-ൽ തിരഞ്ഞെടുക്കാൻ പാടില്ല.');let payload={entry_date:date,category,from_currency:currency,from_amount:amount,inr_currency:categoryValues('currency').find(isINR)||'Indian Rupees',inr_amount:inr,transaction_kind:'conversion',inr_outflow_amount:0,remarks:remarks||null};let {error}=await db.from('him_outflows_v1').insert(payload);if(error)throw error;$('outAmount').value='';$('outInrAmount').value='';$('outRemarks').value='';outflowMessage('Currency conversion save ചെയ്തു.');await load()}catch(e){outflowMessage(e.message||String(e),true)}}
-async function saveInrOutflow(){try{let date=$('inrOutDate').value||new Date().toLocaleDateString('en-CA'),category=$('inrOutCategory').value,amount=Number($('inrOutAmount').value),remarks=$('inrOutRemarks').value.trim(),inrName=categoryValues('currency').find(isINR)||'Indian Rupees';if(!category)throw Error('Settings-ൽ Outflow(expense) type-ന് കീഴിൽ To HIM Madrasa പോലുള്ള category സൃഷ്ടിക്കുക.');if(!(amount>0))throw Error('INR Amount ശരിയായി നൽകുക.');let payload={entry_date:date,category,from_currency:inrName,from_amount:amount,inr_currency:inrName,inr_amount:0,transaction_kind:'inr_outflow',inr_outflow_amount:amount,remarks:remarks||null};let {error}=await db.from('him_outflows_v1').insert(payload);if(error)throw error;$('inrOutAmount').value='';$('inrOutRemarks').value='';inrOutflowMessage('INR outflow save ചെയ്തു.');await load()}catch(e){inrOutflowMessage(e.message||String(e),true)}}
+async function saveOutflow(){try{let date=$('outDate').value||new Date().toLocaleDateString('en-CA'),category=$('convertCategory').value,currency=$('outCurrency').value,amount=Number($('outAmount').value),inr=Number($('outInrAmount').value),remarks=$('outRemarks').value.trim();if(!category)throw Error('Settings-ൽ Send to INR transaction type-ന് കീഴിൽ category സൃഷ്ടിക്കുക.');if(!currency)throw Error('Transfer currency തിരഞ്ഞെടുക്കുക.');if(!(amount>0))throw Error('Transfer Amount ശരിയായി നൽകുക.');if(!(inr>0))throw Error('Manual INR Amount നൽകുക.');if(isINR(currency))throw Error('INR currency converter-ൽ തിരഞ്ഞെടുക്കാൻ പാടില്ല.');let current=outflowTotals().balance.get(canonicalCurrency(currency))||0;if(amount>current+0.000001)throw Error('ഈ currency-യിൽ മതിയായ balance ഇല്ല. Available: '+fmt(current));let payload={entry_date:date,category,from_currency:currency,from_amount:amount,inr_currency:categoryValues('currency').find(isINR)||'Indian Rupees',inr_amount:inr,transaction_kind:'conversion',inr_outflow_amount:0,remarks:remarks||null};let {error}=await db.from('him_outflows_v1').insert(payload);if(error)throw error;$('outAmount').value='';$('outInrAmount').value='';$('outRemarks').value='';await load();outflowMessage('Conversion save ചെയ്തു. Available Balance പുതുക്കി.')}catch(e){outflowMessage(e.message||String(e),true)}}
+async function saveInrOutflow(){try{let date=$('inrOutDate').value||new Date().toLocaleDateString('en-CA'),category=$('inrOutCategory').value,amount=Number($('inrOutAmount').value),remarks=$('inrOutRemarks').value.trim(),inrName=categoryValues('currency').find(isINR)||'Indian Rupees';if(!category)throw Error('Settings-ൽ Outflow(expense) type-ന് കീഴിൽ To HIM Madrasa പോലുള്ള category സൃഷ്ടിക്കുക.');if(!(amount>0))throw Error('INR Amount ശരിയായി നൽകുക.');let current=outflowTotals().balance.get(canonicalCurrency(inrName))||0;if(amount>current+0.000001)throw Error('Indian Rupees-ൽ മതിയായ balance ഇല്ല. Available: '+fmt(current));let payload={entry_date:date,category,from_currency:inrName,from_amount:amount,inr_currency:inrName,inr_amount:0,transaction_kind:'inr_outflow',inr_outflow_amount:amount,remarks:remarks||null};let {error}=await db.from('him_outflows_v1').insert(payload);if(error)throw error;$('inrOutAmount').value='';$('inrOutRemarks').value='';await load();inrOutflowMessage('INR Outflow save ചെയ്തു. Available Balance പുതുക്കി.')}catch(e){inrOutflowMessage(e.message||String(e),true)}}
 $('saveOutflow').onclick=saveOutflow;$('saveInrOutflow').onclick=saveInrOutflow;
 $('clearOutflow').onclick=()=>{['outCurrency','outAmount','outInrAmount','outRemarks'].forEach(id=>$(id).value='');$('outDate').value=new Date().toLocaleDateString('en-CA')};
 $('clearInrOutflow')?.addEventListener('click',()=>{['inrOutCategory','inrOutAmount','inrOutRemarks'].forEach(id=>$(id).value='');$('inrOutDate').value=new Date().toLocaleDateString('en-CA')});
