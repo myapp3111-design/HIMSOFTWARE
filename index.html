@@ -109,8 +109,21 @@ function setSelect(id,values,placeholder){let el=$(id),old=el.value;el.innerHTML
 function refreshCategorySelects(){setSelect('inHand',categoryValues('in_hand'),'Select person');setSelect('currency',categoryValues('currency'),'Select currency');setSelect('country',categoryValues('country'),'Select country');refreshReportFilters();}
 function refreshReportFilters(){if(!$('fCountry'))return;setSelect('fCountry',[...categoryValues('country'),...payments.map(p=>p.country)],'All countries');setSelect('fCurrency',[...categoryValues('currency'),...payments.map(p=>p.currency)],'All currencies');setSelect('fHand',[...categoryValues('in_hand'),...payments.map(p=>p.in_hand)],'All persons');}
 function customTypes(){return categoryValues('transaction_type')}
-function outflowTypeName(){return customTypes().find(v=>v.trim().toLowerCase()==='outflow(expense)')||customTypes().find(v=>v.trim().toLowerCase()==='outflow')||''}
-function refreshOutflowCategory(){let t=outflowTypeName();setSelect('outCategory',t?categoryValues(t):[],'Select outflow category');}
+function outflowTypeNames(){
+ const norm=v=>String(v||'').toLowerCase().replace(/\\s+/g,'').replace(/[._-]/g,'');
+ return customTypes().filter(v=>norm(v).includes('outflow'));
+}
+function refreshOutflowCategory(){
+ const norm=v=>String(v||'').trim().toLowerCase().replace(/\\s+/g,'').replace(/[._-]/g,'');
+ const types=outflowTypeNames(), keys=types.map(norm);
+ // Match categories against the exact custom transaction type, ignoring harmless spacing/case.
+ // Also support legacy labels such as "Outflow" and "Outflow(expense)".
+ const vals=categories.filter(c=>{
+   const k=norm(c.category_type);
+   return keys.includes(k) || k==='outflow' || k==='outflow(expense)' || k.includes('outflow');
+ }).map(c=>c.category_name);
+ setSelect('outCategory',vals,'Select outflow category');
+}
 function renderTypeList(){$('typeList').innerHTML=customTypes().map(v=>`<span class="settings-chip">${esc(v)}</span>`).join('')||'<span class="muted">No custom types yet</span>'}
 function refreshCategoryTypeOptions(){let el=$('categoryType'),old=el.value,types=[['in_hand','In Hand'],['currency','Currency'],['country','Country'],...customTypes().map(v=>[v,v])];el.innerHTML=types.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('');if(types.some(x=>x[0]===old))el.value=old}
 function renderCategoryLists(){let types=[['in_hand','In Hand'],['currency','Currency'],['country','Country'],...customTypes().map(v=>[v,v])];$('categoryLists').innerHTML=types.map(([k,label])=>`<div style="margin-top:12px"><strong>${esc(label)}</strong><div class="settings-list">${categoryValues(k).map(v=>`<span class="settings-chip">${esc(v)}</span>`).join('')||'<span class="muted">No categories yet</span>'}</div></div>`).join('')}
